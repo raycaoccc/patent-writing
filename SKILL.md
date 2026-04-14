@@ -1,7 +1,7 @@
 ---
 name: patent-writing
 description: "End-to-end patent writing assistant for CNIPA, USPTO, and EPO. Use when the user asks to \"write a patent\", \"draft patent claims\", \"search prior art\", \"patent this invention\", \"写专利\", \"撰写权利要求\", \"检索现有技术\", \"写交底书\", \"技术交底书\", or needs help with any stage of patent application — from technical disclosure documents through prior art search, claims drafting, to full specification writing. Covers invention patents (发明专利), utility models (实用新型专利), technical disclosure documents (技术交底书), and AI/ML/software patent eligibility."
-version: 4.0.0
+version: 5.0.0
 author: Claude Scholar
 tags: [Patent Writing, CNIPA, USPTO, EPO, Patent Claims, Prior Art Search, AI Patent, Technical Disclosure, Intellectual Property]
 ---
@@ -214,6 +214,90 @@ When user selects option 1:
 - [ ] 多个实施例覆盖替代实现方式
 - [ ] 附图说明与实际附图匹配
 - [ ] 现有技术引用包含公开日期
+
+---
+
+## Expert Review Loop (审阅修改循环)
+
+After drafting is complete (either disclosure or full patent), **ask the user ONE TIME:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  文稿已完成。是否进行专家审阅与修改？                       │
+│                                                         │
+│  [Y] 是 — 自动进行3轮专家审阅并修改（无需每轮确认）        │
+│  [N] 否 — 直接输出最终文件                                │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+If user selects N, skip to output. If user selects Y, **自动连续执行3轮，中间不再询问。**
+
+### Review Process (3 Rounds, Continuous)
+
+三轮审阅意见**合并到一个Word文档**（审阅意见_汇总.docx），包含三个章节。每轮审阅后立即修改文稿，再进入下一轮。
+
+#### Round 1: Innovation & Prior Art Review (创新性与现有技术审查)
+- **Prior art perspective (web search)**: Search for conflicting patents and papers. Severity: HIGH / MEDIUM / LOW
+- **Technical expert perspective**: Evaluate feasibility, parameter fragility, implementation risks
+- **Document quality**: Terminology consistency, reference completeness, format compliance
+- Apply all P0 and P1 fixes to the draft immediately
+
+#### Round 2: Consistency & Completeness Review (一致性与完整性审查)
+- Verify Round 1 fixes were correctly applied
+- Check innovation point consistency across all sections
+- Check that SNGP-type prior art components are NOT claimed as innovations
+- Verify technical completeness: parameter ranges, initialization methods, convergence criteria
+- Apply remaining fixes
+
+#### Round 3: Final Quality Assurance (终审)
+- Confirm all previous round fixes are in place
+- Terminology uniformity, figure completeness, prior art risk residual
+- Generate final quality rating
+- Produce final output file
+
+### Review Output: Single Consolidated Document
+
+All three rounds are saved in **one Word file** (审阅意见_汇总.docx):
+```
+第一章：第1轮审阅意见（创新性与现有技术）
+  - 现有技术冲突审查
+  - 技术可行性审查
+  - 修改优先级表
+  - 本轮已执行的修改清单
+
+第二章：第2轮审阅意见（一致性与完整性）
+  - 第1轮修改效果确认
+  - 新发现问题
+  - 本轮已执行的修改清单
+
+第三章：第3轮审阅意见（终审）
+  - 第2轮修改效果确认
+  - 终审检查清单
+  - 综合质量评级
+  - 后续操作建议
+```
+
+### Multi-Model Comprehensive Scoring (多模型综合评分)
+
+**审阅完成后**，使用多个模型/视角对专利进行综合评分。并行启动Agent进行评估：
+
+1. **Claude (行业专家视角)** — 技术可行性 + 实施完整性评估
+2. **Web search (模拟Kimi视角)** — 现有技术风险 + 新颖性评估
+3. **用户可选：调用其他模型** — 如用户配置了Kimi、GPT等MCP或API，也可调用
+
+评分维度（每项0-10分）：
+
+| 维度 | 说明 |
+|------|------|
+| 创新性 (Novelty) | 核心创新点是否区别于现有技术 |
+| 技术可行性 (Feasibility) | 方案能否实际实现并达到预期效果 |
+| 保护范围 (Scope) | 权利要求/保护点的覆盖范围是否合理 |
+| 文档规范性 (Compliance) | 格式、术语、附图是否符合专利局要求 |
+| 现有技术规避 (Prior Art Risk) | 是否成功规避了现有技术冲突 |
+| 总评 (Overall) | 加权综合评分 |
+
+最终输出综合评分表，附在审阅意见汇总文档末尾。
 
 ---
 
